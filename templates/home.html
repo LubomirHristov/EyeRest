@@ -1,0 +1,187 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+    <style>
+        button:disabled,
+        button[disabled]{
+            border: 1px solid #999999;
+            background-color: #cccccc;
+            color: #666666;
+        }
+    </style>
+    <div class="jumbotron text-center" style="background-color: transparent">
+        <h1>Welcome to EyeRest</h1>
+        <p class="lead">This application is build on the Python Flask framework and its purpose is to remind you to look away from the computer.</p>
+        <div style="font-size: 21px">
+            Timer is set to: <input type="text" id="timer" value="15" style="background-color: rgba(255,255,255,0.5); border: none">  minute(s)
+        </div>
+        <button id="setButton" type="button" class="btn btn-default" style="margin-top: 5px">Set</button>
+    </div>
+
+
+    <div id="chronoExample">
+        <div id="time" style="font-size: 15rem; text-align: center">15:00</div>
+        <div class="d-flex justify-content-center">
+            <button id="startButton" type="button" class="btn btn-default" style="height: 5rem; width: 15rem; margin: 10px">Start</button>
+            <button id="pauseButton" type="button" class="btn btn-default" disabled = true style="height: 5rem; width: 15rem; margin: 10px">Pause</button>
+            <button id="resumeButton" type="button" class="btn btn-default" disabled = true style="height: 5rem; width: 15rem; margin: 10px">Resume</button>
+            <button id="resetButton" type="button" class="btn btn-default" style="height: 5rem; width: 15rem; margin: 10px">Reset</button>
+        </div>
+    </div>
+
+    <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Time to look away from the screen.</h4>
+                    <!--<button type="button" class="close" data-dismiss="modal">&times;</button>-->
+                </div>
+                <div class="modal-body">
+                    <div class="col-xs-12 col-sm-12 progress-container">
+                        <div class="progress progress-striped active">
+                            <div class="progress-bar progress-bar-success" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id ="stopButton" type="button" class="btn btn-default">Mute audio</button>
+                    <button id="closeButton" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        var myTimer, minutes, seconds;
+        var audio = new Audio('http://www.music.helsinki.fi/tmt/opetus/uusmedia/esim/a2002011001-e02.wav');
+
+        function startTimer(duration, display) {
+            var timer = duration;
+            myTimer = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    playAudio();
+                    openModal();
+                    clearInterval(myTimer);
+                }
+            }, 1000);
+        }
+
+        document.getElementById("startButton").addEventListener("click",
+            function() {
+                document.getElementById("startButton").disabled = true;
+                document.getElementById("pauseButton").disabled = false;
+                var duration = 60 * (parseInt(document.getElementById("timer").value)),
+                display = document.querySelector('#time');
+               startTimer(duration, display);
+            }
+        );
+
+        function setTime(){
+            if(isInputCorrect()){
+                document.getElementById("startButton").disabled = false;
+                document.getElementById("pauseButton").disabled = true;
+                document.getElementById("resumeButton").disabled = true;
+                document.getElementById("resetButton").disabled = false;
+
+                clearInterval(myTimer);
+
+                if(parseInt(document.getElementById("timer").value) < 10){
+                    document.getElementById("time").textContent = "0" + document.getElementById("timer").value + ":00";
+                }else{
+                    document.getElementById("time").textContent = document.getElementById("timer").value + ":00";
+                }
+            }
+        }
+
+        String.prototype.isNumber = function(){
+            return /^\d+$/.test(this);
+        };
+
+        function isInputCorrect(){
+            if(!document.getElementById("timer").value.isNumber()){
+                alert("Invalid number.");
+                return false;
+            }else{
+                return true;
+            }
+        }
+
+        document.getElementById("setButton").addEventListener("click", setTime);
+
+        function pauseTimer() {
+            clearInterval(myTimer);
+            document.getElementById("resumeButton").disabled = false;
+        }
+
+        document.getElementById("pauseButton").addEventListener("click", pauseTimer);
+
+        function resumeTimer(){
+            document.getElementById("resumeButton").disabled = true;
+            var duration = 60 * (parseInt(minutes)) + parseInt(seconds),
+            display = document.querySelector('#time');
+            startTimer(duration, display);
+        }
+
+        document.getElementById("resumeButton").addEventListener("click", resumeTimer);
+
+        function resetTimer() {
+            clearInterval(myTimer);
+            document.getElementById("startButton").disabled = false;
+            document.getElementById("pauseButton").disabled = true;
+            document.getElementById("resumeButton").disabled = true;
+            setTime();
+        }
+
+        document.getElementById("resetButton").addEventListener("click", resetTimer);
+
+        function playAudio(){
+            audio.type = 'audio/wav';
+
+            var playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(function () {
+                    console.log('Playing....');
+                }).catch(function (error) {
+                    console.log('Failed to play....' + error);
+                });
+            }
+        }
+
+        function stopAudio(){
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        document.getElementById("stopButton").addEventListener("click",stopAudio);
+
+        function openModal(){
+            $("#myModal").modal();
+            $(".progress-bar").width(0);
+            $(".progress-bar").animate({
+                width: "100%"
+            }, 15000, function () {
+                document.getElementById("closeButton").click()
+            });
+        }
+
+        document.getElementById("closeButton").addEventListener("click", function () {
+            $(".progress-bar").stop();
+            stopAudio();
+            resetTimer();
+            document.getElementById("startButton").click();
+        });
+    </script>
+{% endblock %}
