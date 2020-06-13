@@ -1,6 +1,6 @@
 # EyeRest
 
-This is a simple application written with Flask that reminds you to look away from the screen every *x* minutes.
+This is a simple application written with Flask that reminds you to look away from the screen every *x* minutes by playing music.
 
 To start the application run the following command:
 
